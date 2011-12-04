@@ -38,21 +38,22 @@ spawn_list(FList, {Size0, Ref, List0}) ->
 	{NewSize, Ref, NewList}.
 
 go({_Size, _Ref, _List} = SRL) ->
-	SRL.
+	{SRL, goed}.
 
 async_go({_Size, _Ref, _List} = SRL) ->
 	SRL.
 
 sync({Size, Ref, List}) ->
 	Timeout = 600000,
-	if % choose scheme to use
+	ok = if % choose scheme to use
 		Size >= 40 ->
 			sync_tree(Ref, Size, List, Timeout);
 		Size >= 20 ->
 			sync_list2(Ref, Size, List, [], Timeout);
 		true ->
 			sync_list(Ref, List, Timeout)
-	end.
+	end,
+	{{0, Ref, []}, synced}.
 
 % Sync list is for small groups.
 % List handling is fast, however it processes messages out-of-order, which will mean

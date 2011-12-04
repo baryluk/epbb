@@ -51,7 +51,7 @@ spawn_list(FList, Pid) ->
 % of whole group, but before go() it can vary!
 go(Pid) ->
 	goed = gen_server:call(Pid, go, 600*1000), % set timeout to 10 minutes, instead of 5 seconds
-	Pid.
+	{Pid, goed}.
 
 async_go(Pid) ->
 	gen_server:cast(Pid, {async_go, self()}),
@@ -59,7 +59,7 @@ async_go(Pid) ->
 
 sync(Pid) ->
 	synced = gen_server:call(Pid, sync, 600*1000), % set timeout to 10 minutes, instead of 5 seconds
-	Pid.
+	{Pid, synced}.
 
 
 
@@ -67,7 +67,7 @@ sync(Pid) ->
 
 % private API
 init_wait(Parent) ->
-	gen_server:call(Parent, {init_wait, self()}).
+	gen_server:call(Parent, {init_wait, self()}, 60*1000).
 
 iamdone(Parent) ->
 	gen_server:cast(Parent, {iamdone, self()}),
@@ -118,7 +118,8 @@ go_go(State = #state{goed=false,initwaitlist=WaitList0,size=Size,barriersize=Bar
 handle_call(sync, From, State = #state{sync=false,goed=true,size=Size,donesize=DoneSize}) ->
 	case DoneSize of
 		Size ->
-			{reply, synced, empty};
+			%{reply, synced, empty};
+			{stop, normal, synced, empty};
 		_ ->
 			{noreply, State#state{sync=true,syncer=From}}
 	end;
@@ -144,6 +145,9 @@ handle_call({init_wait, _From2}, _From, State = #state{goed=true}) ->
 handle_call({init_wait, _From2}, From, State = #state{goed=false,initwaitlist=WaitList0}) ->
 	{noreply, State#state{initwaitlist=[From | WaitList0]}}.
 
+%handle_call(_, _, State = empty) ->
+%	{noreply, State}. % let caller crash
+
 
 sl(F, Parent) ->
 	spawn_link(fun() ->
@@ -166,7 +170,7 @@ handle_cast({spawn_list, FList}, State = #state{goed=false,pids=List0,size=Size0
 		{Size+1, [Pid | List]}
 	end, {Size0, List0}, FList),
 	{noreply, State#state{pids=NewList,size=NewSize}};
-handle_cast({imdone, From}, State = #state{goed=true,done=DoneList0,donesize=DoneSize0,size=Size}) when DoneSize0 < Size ->
+handle_cast({iamdone, From}, State = #state{goed=true,done=DoneList0,donesize=DoneSize0,size=Size}) when DoneSize0 < Size ->
 	DoneSize = DoneSize0+1,
 	if
 		State#state.sync and (DoneSize == Size) ->
@@ -175,18 +179,23 @@ handle_cast({imdone, From}, State = #state{goed=true,done=DoneList0,donesize=Don
 			ok
 	end,
 	{noreply, State#state{done=[From|DoneList0],donesize=DoneSize}};
-handle_cast({imdone, From}, State = #state{goed=false,done=DoneList0,donesize=DoneSize0}) ->
+handle_cast({iamdone, From}, State = #state{goed=false,done=DoneList0,donesize=DoneSize0}) ->
 	DoneSize = DoneSize0+1,
 	{noreply, State#state{done=[From|DoneList0],donesize=DoneSize}};
 handle_cast({async_go, _From}, State = #state{goed=false}) ->
 	State2 = go_go(State),
 	{noreply, State2}.
 
+%handle_cast(_, State = empty) ->
+%	{noreply, State}.
+
 
 handle_info(_Msg, _State) ->
 	exit(badarg).
 
 
+terminate(normal, empty) ->
+	ok;
 terminate(_Reason, _State) ->
 	void.
 
