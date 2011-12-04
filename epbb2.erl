@@ -174,11 +174,11 @@ handle_cast({iamdone, From}, State = #state{goed=true,done=DoneList0,donesize=Do
 	DoneSize = DoneSize0+1,
 	if
 		State#state.sync and (DoneSize == Size) ->
-			gen_server:reply(State#state.syncer, synced);
+			gen_server:reply(State#state.syncer, synced),
+			{stop, normal, empty};
 		true ->
-			ok
-	end,
-	{noreply, State#state{done=[From|DoneList0],donesize=DoneSize}};
+			{noreply, State#state{done=[From|DoneList0],donesize=DoneSize}}
+	end;
 handle_cast({iamdone, From}, State = #state{goed=false,done=DoneList0,donesize=DoneSize0}) ->
 	DoneSize = DoneSize0+1,
 	{noreply, State#state{done=[From|DoneList0],donesize=DoneSize}};
