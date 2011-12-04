@@ -1,15 +1,12 @@
 Erlang parallel building blocks
 
 
-ALPHA QUALITY SOFTWARE - NOT TESTED.
 
+Somtimes we need to start multiple parallal tasks and then wait until
+all of them completes.
 
-Somtimes we need to start multiple parallal tasks
-and then wait until all of them completes.
-
-This is acomplished using epbb module,
-with new_group/0, spawn/2, spawn_list/2, go/1, async_go/1,
-barrier/0,1 and sync/1 functions:
+This is acomplished using epbb module, with new_group/0, spawn/2,
+spawn_list/2, go/1, async_go/1, barrier/0,1 and sync/1 functions:
 
 Example:
 
@@ -27,8 +24,8 @@ io:format("Z~n").
 
 
 It will display A, B, C, D before K, L, M, N which will be before Z.
-Actuall A, B, C, D can be permuted. Similary K, L, M, N.
-But ordering beetween groups will be conserved.
+Actuall A, B, C, D can be permuted. Similary K, L, M, N. But ordering
+beetween groups will be conserved.
 
 For example on my machine it output gives:
 
@@ -45,26 +42,24 @@ ok
 
 
 
-There are two identical APIs which can be used.
-epbb and epbb2, they just differ in implementation.
+There are two identical APIs which can be used. epbb and epbb2, they
+just differ in implementation.
 
-epbb is based on direct handling of processes
-in sync function in calling processes.
+epbb is based on direct handling of processes in sync function in
+calling processes.
 
-epbb2 starts new controling processes in new_group, and all
-other calls are actually just sending messages
-to this controling process. It is more flexible,
-more robust and should be faster, if you have multiple
-groups, or want to perform something in the calling
-processes without worring about usage of barriers in
-spawned processes.
+epbb2 starts new controling processes in new_group, and all other calls
+are actually just sending messages to this controling process. It is
+more flexible, more robust and should be faster, if you have multiple
+groups, or want to perform something in the calling processes without
+worring about usage of barriers in spawned processes.
 
 
-Instead of fun/1, one can pass fun/0 to spawn/spawn_list functions,
-but then using of epbb2:barrier/1 is impossible
-(or rather not recommended, because it is possible to use
-epbb2:barrier/0, for same functionality, Pid/Ref of parent/controlling process,
-will be just implicitly stored in process' dictionary under key '$epbb2_parent').
+Instead of fun/1, one can pass fun/0 to spawn/spawn_list functions, but
+then using of epbb2:barrier/1 is impossible (or rather not recommended,
+because it is possible to use epbb2:barrier/0, for same functionality,
+Pid/Ref of parent/controlling process, will be just implicitly stored in
+process' dictionary under key '$epbb2_parent').
 
 
 Spawned tasks, can perform currently actions:
@@ -79,8 +74,7 @@ TODO:
    - send_to_parent
    - receive_from_parent
 
-   % two last functions involves parent to communicate with all processes,
-   % this means that all spawned processes should follow same
-   % code path.
+Two last functions involves parent to communicate with all processes,
+this means that all spawned processes should follow same code path.
 
 
