@@ -1,0 +1,52 @@
+Erlang parallel building blocks
+
+
+ALPHA QUALITY SOFTWARE - NOT TESTED.
+
+
+Somtimes we need to start multiple parallal tasks
+and then wait until all of them completes.
+
+This is acomplished using epbb module,
+with new_group/0, spawn/2, spawn_list/2, and sync/1
+functions:
+
+P = self(),
+Group = epbb:new_group(),
+Group1 = epbb:spawn_list([
+                 fun() -> do_something(1) end,
+                 fun() -> do_something(2) end,
+                 fun() -> do_something(3) end
+            ], Group),
+Group2 = epbb:spawn(fun() -> other(4) end, Group1),
+epbb:sync(Group2).
+
+
+
+
+There are two identical APIs which can be used.
+epbb and epbb2, they just differ in implementation.
+
+epbb is based on direct handling of processes
+in sync function in calling processes.
+
+epbb2 starts new controling processes in new_group, and all
+other calls are actually just sending messages
+to this controling process. It is more flexible,
+more robust and should be faster, if you have multiple
+groups, or want to perform something in the calling
+processes without worring about usage of barriers in
+spawned processes.
+
+
+Spawned tasks, can perform currently actions:
+   - epbb2:iamdone() - called automatically when processes ends
+   - epbb2:barrier() - must be called by all spawned processes
+               to make progress through it
+
+
+TODO:
+   - reduce
+   - broadcast
+   - send_to_parent
+
