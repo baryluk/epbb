@@ -18,7 +18,7 @@ Group = epbb2:new_group(),
 Group1 = epbb2:spawn_list([
                  fun() -> io:format("A~n"), epbb2:barrier(), io:format("K~n") end,
                  fun() -> io:format("B~n"), epbb2:barrier(), io:format("L~n") end,
-                 fun() -> io:format("C~n"), epbb2:barrier(), io:format("M~n") end,
+                 fun() -> io:format("C~n"), epbb2:barrier(), io:format("M~n") end
             ], Group),
 Group2 = epbb2:spawn(fun() -> io:format("D~n"), epbb2:barrier(), io:format("N~n") end, Group1),
 {Group3, goed} = epbb2:go(Group2),
@@ -26,10 +26,22 @@ Group2 = epbb2:spawn(fun() -> io:format("D~n"), epbb2:barrier(), io:format("N~n"
 io:format("Z~n").
 
 
-It will display A, B, C before K, L, M which will be before Z.
-Actuall A, B, C can be permuted. Similary K, L, M.
+It will display A, B, C, D before K, L, M, N which will be before Z.
+Actuall A, B, C, D can be permuted. Similary K, L, M, N.
 But ordering beetween groups will be conserved.
 
+For example on my machine it output gives:
+
+C
+B
+A
+D
+N
+K
+L
+M
+Z
+ok
 
 
 
