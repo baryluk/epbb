@@ -1,6 +1,12 @@
 -module(epbb2).
 -author('baryluk@smp.if.uj.edu.pl').
 
+% Copyright (c) 2011, Witold Baryluk
+% All rights reserved.
+% Licensed under BSD license, see LICENSE for details.
+
+% Erlang parallel building blocks (2)
+
 -behaviour(gen_server).
 
 -export([start/0, start_link/0]).

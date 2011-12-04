@@ -1,6 +1,10 @@
 -module(epbb).
 -author('baryluk@smp.if.uj.edu.pl').
 
+% Copyright (c) 2011, Witold Baryluk
+% All rights reserved.
+% Licensed under BSD license, see LICENSE for details.
+
 % Erlang parallel building blocks
 
 -export([new_group/0, spawn/2, spawn_list/2, go/1, async_go/1, sync/1]).

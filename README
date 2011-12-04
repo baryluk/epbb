@@ -1,6 +1,11 @@
 Erlang parallel building blocks
 
 
+Copyright (c) 2011, Witold Baryluk
+All rights reserved.
+Licensed under BSD license, see LICENSE for details.
+
+
 
 Somtimes we need to start multiple parallal tasks and then wait until
 all of them completes.
