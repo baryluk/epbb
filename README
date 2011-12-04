@@ -8,19 +8,28 @@ Somtimes we need to start multiple parallal tasks
 and then wait until all of them completes.
 
 This is acomplished using epbb module,
-with new_group/0, spawn/2, spawn_list/2, and sync/1
-functions:
+with new_group/0, spawn/2, spawn_list/2, go/1, async_go/1,
+and sync/1 functions:
+
+Example:
 
 P = self(),
-Group = epbb:new_group(),
-Group1 = epbb:spawn_list([
-                 fun() -> do_something(1) end,
-                 fun() -> do_something(2) end,
-                 fun() -> do_something(3) end
+Group = epbb2:new_group(),
+Group1 = epbb2:spawn_list([
+                 fun() -> io:format("A~n"), epbb2:barrier(), io:format("K~n") end,
+                 fun() -> io:format("B~n"), epbb2:barrier(), io:format("L~n") end,
+                 fun() -> io:format("C~n"), epbb2:barrier(), io:format("M~n") end,
             ], Group),
-Group2 = epbb:spawn(fun() -> other(4) end, Group1),
-{Group3, goed} = epbb:go(Group2),
-{_, synced} = epbb:sync(Group3).
+Group2 = epbb2:spawn(fun() -> io:format("D~n"), epbb2:barrier(), io:format("N~n") end, Group1),
+{Group3, goed} = epbb2:go(Group2),
+{_, synced} = epbb2:sync(Group3),
+io:format("Z~n").
+
+
+It will display A, B, C before K, L, M which will be before Z.
+Actuall A, B, C can be permuted. Similary K, L, M.
+But ordering beetween groups will be conserved.
+
 
 
 
@@ -40,13 +49,19 @@ spawned processes.
 
 
 Spawned tasks, can perform currently actions:
-   - epbb2:iamdone() - called automatically when processes ends
    - epbb2:barrier() - must be called by all spawned processes
                to make progress through it
+   - epbb2:iamdone() - called automatically when processes ends
 
 
 TODO:
    - reduce
-   - broadcast
+   - broadcast_to_other
    - send_to_parent
+   - receive_from_parent
+
+   % two last functions involves parent to communicate with all processes,
+   % this means that all spawned processes should follow same
+   % code path.
+
 
