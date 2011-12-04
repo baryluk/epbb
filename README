@@ -19,8 +19,8 @@ Group1 = epbb:spawn_list([
                  fun() -> do_something(3) end
             ], Group),
 Group2 = epbb:spawn(fun() -> other(4) end, Group1),
-epbb:sync(Group2).
-
+Group3 = epbb:go(Group2),
+epbb:sync(Group3).
 
 
 
