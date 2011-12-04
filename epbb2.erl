@@ -6,7 +6,7 @@
 -export([start/0, start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--export([new_group/0, spawn/2, spawn_list/2, go/1, sync/1, barrier/0]). % , synced_barrier/0
+-export([new_group/0, spawn/2, spawn_list/2, go/1, async_go/1, sync/1, barrier/0]). % , synced_barrier/0
 
 -record(state, {
 	pids=[],
@@ -53,6 +53,10 @@ go(Pid) ->
 	goed = gen_server:call(Pid, go, 600*1000), % set timeout to 10 minutes, instead of 5 seconds
 	Pid.
 
+async_go(Pid) ->
+	gen_server:cast(Pid, {async_go, self()}),
+	Pid.
+
 sync(Pid) ->
 	synced = gen_server:call(Pid, sync, 600*1000), % set timeout to 10 minutes, instead of 5 seconds
 	Pid.
@@ -63,10 +67,10 @@ sync(Pid) ->
 
 % private API
 init_wait(Parent) ->
-	gen_server:call({init_wait, self()}, Parent).
+	gen_server:call(Parent, {init_wait, self()}).
 
 iamdone(Parent) ->
-	gen_server:cast({iamdone, self()}, Parent),
+	gen_server:cast(Parent, {iamdone, self()}),
 	ok.
 
 parent() -> get('$epbb2_parent').
@@ -74,11 +78,11 @@ parent() -> get('$epbb2_parent').
 % public API
 barrier() ->
 	Parent = parent(),
-	gen_server:call({barrier, self()}, Parent, 600*1000).
+	gen_server:call(Parent, {barrier, self()}, 600*1000).
 
 %synced_barrier() ->
 %	Parent = parent(),
-%	gen_server:call({synced_barrier, self()}, Parent, 600*1000).
+%	gen_server:call(Parent, {synced_barrier, self()}, 600*1000).
 
 
 
@@ -99,24 +103,28 @@ notify_barrier(BarrierList) ->
 	end, BarrierList).
 
 
-handle_call(sync, From, State = #state{sync=false,goed=true,size=Size,donesize=DoneSize}) ->
-	case DoneSize of
-		Size ->
-			{reply, synced, #state{}};
-		_ ->
-			{noreply, State#state{sync=true,syncer=From}}
-	end;
-handle_call(go, _From, State = #state{goed=false,initwaitlist=WaitList0,size=Size,barriersize=BarrierSize0,barrierlist=BarrierList0}) ->
-	lists:foreach(fun(P) ->
+go_go(State = #state{goed=false,initwaitlist=WaitList0,size=Size,barriersize=BarrierSize0,barrierlist=BarrierList0}) ->
+		lists:foreach(fun(P) ->
 		gen_server:reply(P, go)
 	end, WaitList0),
 	case BarrierSize0 of
 		Size ->
 			notify_barrier(BarrierList0),
-			{reply, goed, State#state{goed=true,barriersize=0,barrierlist=[]}};
+			State#state{goed=true,initwaitlist=[],barriersize=0,barrierlist=[]};
 		_ ->
-			{reply, goed, State#state{goed=true}}
+			State#state{goed=true,initwaitlist=[]}
+	end.
+
+handle_call(sync, From, State = #state{sync=false,goed=true,size=Size,donesize=DoneSize}) ->
+	case DoneSize of
+		Size ->
+			{reply, synced, empty};
+		_ ->
+			{noreply, State#state{sync=true,syncer=From}}
 	end;
+handle_call(go, _From, State = #state{goed=false}) ->
+	State2 = go_go(State),
+	{reply, goed, State2};
 handle_call({barrier, _From2}, From, State = #state{goed=true,size=Size,barriersize=BarrierSize0,barrierlist=BarrierList0}) ->
 	BarrierList = [From | BarrierList0],
 	BarrierSize = BarrierSize0+1,
@@ -169,7 +177,10 @@ handle_cast({imdone, From}, State = #state{goed=true,done=DoneList0,donesize=Don
 	{noreply, State#state{done=[From|DoneList0],donesize=DoneSize}};
 handle_cast({imdone, From}, State = #state{goed=false,done=DoneList0,donesize=DoneSize0}) ->
 	DoneSize = DoneSize0+1,
-	{noreply, State#state{done=[From|DoneList0],donesize=DoneSize}}.
+	{noreply, State#state{done=[From|DoneList0],donesize=DoneSize}};
+handle_cast({async_go, _From}, State = #state{goed=false}) ->
+	State2 = go_go(State),
+	{noreply, State2}.
 
 
 handle_info(_Msg, _State) ->

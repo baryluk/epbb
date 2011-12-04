@@ -3,7 +3,7 @@
 
 % Erlang parallel building blocks
 
--export([new_group/0, spawn/2, spawn_list/2, go/1, sync/1]).
+-export([new_group/0, spawn/2, spawn_list/2, go/1, async_go/1, sync/1]).
 
 %
 % Group = epbb:new_group(),
@@ -37,7 +37,10 @@ spawn_list(FList, {Size0, Ref, List0}) ->
 	end, {Size0, List0}, FList),
 	{NewSize, Ref, NewList}.
 
-go({Size, Ref, List} = SRL) ->
+go({_Size, _Ref, _List} = SRL) ->
+	SRL.
+
+async_go({_Size, _Ref, _List} = SRL) ->
 	SRL.
 
 sync({Size, Ref, List}) ->
