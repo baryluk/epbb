@@ -104,7 +104,8 @@ notify_barrier(BarrierList) ->
 
 
 go_go(State = #state{goed=false,initwaitlist=WaitList0,size=Size,barriersize=BarrierSize0,barrierlist=BarrierList0}) ->
-		lists:foreach(fun(P) ->
+	% this can be done in background, in separate process, or in parallel
+	lists:foreach(fun(P) ->
 		gen_server:reply(P, go)
 	end, WaitList0),
 	case BarrierSize0 of
