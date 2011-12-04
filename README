@@ -9,18 +9,18 @@ and then wait until all of them completes.
 
 This is acomplished using epbb module,
 with new_group/0, spawn/2, spawn_list/2, go/1, async_go/1,
-and sync/1 functions:
+barrier/0,1 and sync/1 functions:
 
 Example:
 
 P = self(),
 Group = epbb2:new_group(),
 Group1 = epbb2:spawn_list([
-                 fun() -> io:format("A~n"), epbb2:barrier(), io:format("K~n") end,
-                 fun() -> io:format("B~n"), epbb2:barrier(), io:format("L~n") end,
-                 fun() -> io:format("C~n"), epbb2:barrier(), io:format("M~n") end
+                 fun(U) -> io:format("A~n"), epbb2:barrier(U), io:format("K~n") end,
+                 fun(U) -> io:format("B~n"), epbb2:barrier(U), io:format("L~n") end,
+                 fun(U) -> io:format("C~n"), epbb2:barrier(U), io:format("M~n") end
             ], Group),
-Group2 = epbb2:spawn(fun() -> io:format("D~n"), epbb2:barrier(), io:format("N~n") end, Group1),
+Group2 = epbb2:spawn(fun(U) -> io:format("D~n"), epbb2:barrier(U), io:format("N~n") end, Group1),
 {Group3, goed} = epbb2:go(Group2),
 {_, synced} = epbb2:sync(Group3),
 io:format("Z~n").
@@ -58,6 +58,13 @@ more robust and should be faster, if you have multiple
 groups, or want to perform something in the calling
 processes without worring about usage of barriers in
 spawned processes.
+
+
+Instead of fun/1, one can pass fun/0 to spawn/spawn_list functions,
+but then using of epbb2:barrier/1 is impossible
+(or rather not recommended, because it is possible to use
+epbb2:barrier/0, for same functionality, Pid/Ref of parent/controlling process,
+will be just implicitly stored in process' dictionary under key '$epbb2_parent').
 
 
 Spawned tasks, can perform currently actions:

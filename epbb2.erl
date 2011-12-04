@@ -6,7 +6,7 @@
 -export([start/0, start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--export([new_group/0, spawn/2, spawn_list/2, go/1, async_go/1, sync/1, barrier/0]). % , synced_barrier/0
+-export([new_group/0, spawn/2, spawn_list/2, go/1, async_go/1, sync/1, barrier/0, barrier/1]). % , synced_barrier/0
 
 -record(state, {
 	pids=[],
@@ -35,11 +35,11 @@ new_group() ->
 	{ok, Pid} = start_link(),
 	Pid.
 
-spawn(F, Pid) ->
+spawn(F, Pid) when is_function(F, 0) or is_function(F, 1) ->
 	gen_server:cast(Pid, {spawn, F}),
 	Pid.
 
-spawn_list(FList, Pid) ->
+spawn_list(FList, Pid) when is_list(FList) ->
 	gen_server:cast(Pid, {spawn_list, FList}),
 	Pid.
 
@@ -74,14 +74,21 @@ iamdone(Parent) ->
 	ok.
 
 parent() -> get('$epbb2_parent').
+parent(Parent) -> Parent.
 
 % public API
 barrier() ->
 	Parent = parent(),
+	barrier(Parent).
+
+barrier(Parent) ->
 	gen_server:call(Parent, {barrier, self()}, 600*1000).
 
 %synced_barrier() ->
 %	Parent = parent(),
+%	synced_barrier(Parent).
+
+%synced_barrier(Parent) ->
 %	gen_server:call(Parent, {synced_barrier, self()}, 600*1000).
 
 
@@ -150,12 +157,18 @@ handle_call({init_wait, _From2}, From, State = #state{goed=false,initwaitlist=Wa
 %	{noreply, State}. % let caller crash
 
 
-sl(F, Parent) ->
+sl(F, Parent) when is_function(F, 0) ->
 	spawn_link(fun() ->
 		go = init_wait(Parent), % TODO: we should get rid of init_wait
 		                        % just start F(), eventually blocking in iamdone() or barrier()!
 		put('$epbb2_parent', Parent),
 		F(),
+		iamdone(Parent)
+	end);
+sl(F, Parent) when is_function(F, 1) ->
+	spawn_link(fun() ->
+		go = init_wait(Parent),
+		F(Parent),
 		iamdone(Parent)
 	end).
 
@@ -166,7 +179,7 @@ handle_cast({spawn, F}, State = #state{goed=false,pids=List,size=Size}) ->
 	{noreply, State#state{pids=[Pid|List],size=Size+1}};
 handle_cast({spawn_list, FList}, State = #state{goed=false,pids=List0,size=Size0}) ->
 	Parent = self(),
-	{NewSize, NewList} = lists:foldl(fun (F, {Size, List}) when is_function(F, 0) ->
+	{NewSize, NewList} = lists:foldl(fun (F, {Size, List}) when is_function(F, 0) or is_function(F, 1) ->
 		Pid = sl(F, Parent),
 		{Size+1, [Pid | List]}
 	end, {Size0, List0}, FList),
